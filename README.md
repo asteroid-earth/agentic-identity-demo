@@ -1,4 +1,4 @@
-# Hack 25
+# agentic-identity-demo
 
 A simple PNPM workspaces mono repo with web, backend and agent packages.
 
