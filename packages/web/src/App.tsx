@@ -118,8 +118,9 @@ export function App() {
         <fieldset>
           <legend>Allow roles:</legend>
 
-          {isSuccess
-            ? data.data.user.roles.map((role) => (
+          {isSuccess ? (
+            <RolesContainer>
+              {data.data.user.roles.map((role) => (
                 <div key={role}>
                   <input
                     type="checkbox"
@@ -130,8 +131,11 @@ export function App() {
                   />
                   <label htmlFor={role}>{role}</label>
                 </div>
-              ))
-            : null}
+              ))}
+            </RolesContainer>
+          ) : (
+            <p>No roles</p>
+          )}
         </fieldset>
 
         <button type="submit" disabled={!submitEnabled}>
@@ -169,6 +173,12 @@ const Form = styled.form`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  gap: 16px;
+`;
+
+const RolesContainer = styled.div`
+  display: inline-flex;
+  flex-wrap: wrap;
   gap: 16px;
 `;
 

@@ -39,6 +39,11 @@ strong {
   font-weight: bold;
 }
 
+fieldset {
+  border: 1px solid #ccc;
+  border-radius: 16px;
+}
+
 button {
   border-radius: 8px;
   border: 1px solid transparent;
