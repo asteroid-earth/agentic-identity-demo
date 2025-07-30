@@ -6,6 +6,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 export function App() {
   const [prompt, setPrompt] = useState("");
   const [roles, setRoles] = useState<Record<string, boolean>>({});
+  const [history, setHistory] = useState<
+    { prompt: string; roles: string[]; result: string; timestamp: Date }[]
+  >([]);
 
   // Used to fetch user data including email/subject and assigned roles
   const { isLoading, isSuccess, data, error } = useQuery({
@@ -14,16 +17,35 @@ export function App() {
     staleTime: 0, // Don't cache this query
   });
 
-  const {
-    mutateAsync,
-    data: promptData,
-    error: promptError,
-  } = useMutation({
+  const { mutateAsync } = useMutation({
     mutationFn: (params: Parameters<typeof submitPrompt>[0]) =>
       submitPrompt(params),
     onSuccess: (data) => {
-      console.log("Prompt success", data);
+      setHistory((prevHistory) => [
+        ...prevHistory,
+        {
+          prompt,
+          result: data.data.result,
+          roles: Object.entries(roles)
+            .filter(([, checked]) => checked)
+            .map(([role]) => role),
+          timestamp: new Date(),
+        },
+      ]);
       setPrompt("");
+    },
+    onError: (error) => {
+      setHistory((prevHistory) => [
+        ...prevHistory,
+        {
+          prompt,
+          result: error.message,
+          roles: Object.entries(roles)
+            .filter(([, checked]) => checked)
+            .map(([role]) => role),
+          timestamp: new Date(),
+        },
+      ]);
     },
   });
 
@@ -69,13 +91,15 @@ export function App() {
 
   return (
     <>
-      <h1>Awesome Agent</h1>
+      <TitleContainer>
+        <h1>Awesome Agent</h1>
 
-      {isSuccess ? (
-        <p>
-          Welcome <strong>{data.data.user.sub}</strong>
-        </p>
-      ) : null}
+        {isSuccess ? (
+          <p>
+            Welcome <strong>{data.data.user.sub}</strong>
+          </p>
+        ) : null}
+      </TitleContainer>
 
       <Form onSubmit={handleSubmit}>
         <Prompt
@@ -110,12 +134,31 @@ export function App() {
         </button>
       </Form>
 
-      {promptData ? <p>{promptData.data.result}</p> : null}
-
-      {promptError ? <p>Error: {promptError.message}</p> : null}
+      {history.length ? (
+        <HistoryContainer>
+          <h2>History:</h2>
+          <dl>
+            {history.map((h) => {
+              return [
+                <dt key={h.timestamp.toISOString() + "_t"}>
+                  <strong>You:</strong> {h.prompt} ({h.roles.join(", ")})
+                </dt>,
+                <dd key={h.timestamp.toISOString() + "_d"}>
+                  <strong>Agent:</strong> {h.result}
+                </dd>,
+              ];
+            })}
+          </dl>
+        </HistoryContainer>
+      ) : null}
     </>
   );
 }
+
+const TitleContainer = styled.div`
+  padding: 16px;
+  text-align: center;
+`;
 
 const Form = styled.form`
   display: flex;
@@ -128,6 +171,10 @@ const Prompt = styled.textarea`
   padding: 16px;
   border: 1px solid #ccc;
   border-radius: 16px;
+`;
+
+const HistoryContainer = styled.div`
+  padding: 16px;
 `;
 
 // Api call to fetch information on the current user
