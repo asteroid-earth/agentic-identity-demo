@@ -7,7 +7,12 @@ export function App() {
   const [prompt, setPrompt] = useState("");
   const [roles, setRoles] = useState<Record<string, boolean>>({});
   const [history, setHistory] = useState<
-    { prompt: string; roles: string[]; result: string; timestamp: Date }[]
+    readonly {
+      prompt: string;
+      roles: string[];
+      result: string;
+      timestamp: Date;
+    }[]
   >([]);
 
   // Used to fetch user data including email/subject and assigned roles
@@ -138,7 +143,7 @@ export function App() {
         <HistoryContainer>
           <h2>History:</h2>
           <dl>
-            {history.map((h) => {
+            {[...history].reverse().map((h) => {
               return [
                 <dt key={h.timestamp.toISOString() + "_t"}>
                   <strong>You:</strong> {h.prompt} ({h.roles.join(", ")})
