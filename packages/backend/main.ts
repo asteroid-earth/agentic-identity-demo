@@ -170,7 +170,7 @@ async function handlePromptApiCall(
     return;
   }
 
-  const resp = prompt({
+  const resp = await prompt({
     prompt: request.params.prompt,
     roles: request.params.roles,
     assertionToken: session,
