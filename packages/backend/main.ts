@@ -54,6 +54,11 @@ const app = new Koa();
 app.use(mount("/web", web)); // Mount the static files server
 app.use(bodyParser()); // For parsing JSON bodies
 app.use(async (ctx) => {
+  if (ctx.path === "/") {
+    ctx.redirect("/web");
+    return;
+  }
+
   // Only serve request with a valid API path
   if (ctx.path === "/api") {
     // Validate and parse incoming JSON body
