@@ -12,6 +12,8 @@ const webDir = __dirname + "/.web";
 // An app dedicated to serving static files
 const web = new Koa();
 web.use(async (ctx) => {
+  console.log("WEB: ", ctx.path);
+
   // Grab the injected Teleport assertion token
   const teleportJwtAssertion = ctx.header["teleport-jwt-assertion"];
 
@@ -66,6 +68,8 @@ app.use(async (ctx) => {
       });
       return;
     }
+
+    console.log("API: ", request.data.call);
 
     // Handle API calls by `call`
     switch (request.data.call) {
