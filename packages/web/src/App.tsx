@@ -22,7 +22,7 @@ export function App() {
     staleTime: 0, // Don't cache this query
   });
 
-  const { mutateAsync } = useMutation({
+  const { mutateAsync, isPending } = useMutation({
     mutationFn: (params: Parameters<typeof submitPrompt>[0]) =>
       submitPrompt(params),
     onSuccess: (data) => {
@@ -84,7 +84,23 @@ export function App() {
 
   // Whether the submit button is enabled
   const submitEnabled =
-    !!prompt && Object.values(roles).some((checked) => checked);
+    !!prompt && Object.values(roles).some((checked) => checked) && !isPending;
+
+  const fullHistory = (
+    isPending
+      ? [
+          ...history,
+          {
+            prompt,
+            roles: Object.entries(roles)
+              .filter(([, checked]) => checked)
+              .map(([role]) => role),
+            timestamp: new Date(),
+            result: "Thinking...",
+          },
+        ]
+      : [...history]
+  ).reverse();
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -95,7 +111,7 @@ export function App() {
   }
 
   return (
-    <>
+    <Container>
       <TitleContainer>
         <h1>Awesome Agent</h1>
 
@@ -143,26 +159,33 @@ export function App() {
         </button>
       </Form>
 
-      {history.length ? (
+      {fullHistory.length ? (
         <HistoryContainer>
-          <h2>History:</h2>
+          <h2>Conversation</h2>
           <dl>
-            {[...history].reverse().map((h) => {
+            {fullHistory.map((h) => {
               return [
                 <dt key={h.timestamp.toISOString() + "_t"}>
-                  <strong>You:</strong> {h.prompt} ({h.roles.join(", ")})
+                  <strong>You ({h.roles.sort().join(", ")}):</strong> {h.prompt}
                 </dt>,
                 <dd key={h.timestamp.toISOString() + "_d"}>
-                  <strong>Agent:</strong> {h.result}
+                  <strong>Agent ({h.timestamp.toLocaleTimeString()}):</strong>{" "}
+                  {h.result}
                 </dd>,
               ];
             })}
           </dl>
         </HistoryContainer>
       ) : null}
-    </>
+    </Container>
   );
 }
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
 
 const TitleContainer = styled.div`
   padding: 16px;
@@ -189,6 +212,10 @@ const Prompt = styled.textarea`
 `;
 
 const HistoryContainer = styled.div`
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   padding: 16px;
 `;
 
