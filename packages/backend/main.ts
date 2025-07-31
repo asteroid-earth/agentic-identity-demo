@@ -1,7 +1,6 @@
 import Koa from "koa";
 import mount from "koa-mount";
 import send from "koa-send";
-import { setCookie, parseCookie } from "koa-cookies";
 import { bodyParser } from "@koa/bodyparser";
 import * as z from "zod";
 import { prompt } from "@hack25/agent";
@@ -14,8 +13,7 @@ const web = new Koa();
 web.use(async (ctx) => {
   console.log("WEB: ", ctx.path);
 
-  // Grab the injected Teleport assertion token
-  const teleportJwtAssertion = ctx.header["teleport-jwt-assertion"];
+  const teleportJwtAssertion = readTeleportJwtAssersion(ctx);
 
   // Fail if the token is not present. This app must be served through Teleport
   // App Access.
@@ -30,20 +28,6 @@ web.use(async (ctx) => {
     await send(ctx, ctx.path, { root: webDir });
     return;
   }
-
-  // Send the Teleport Assertion token to the client as a cookie - this will
-  // come back in calls to the API
-  await setCookie(
-    "teleportJwtAssertion",
-    Array.isArray(teleportJwtAssertion)
-      ? teleportJwtAssertion[0]
-      : teleportJwtAssertion,
-    {
-      domain: null,
-      // maxAge:
-      // expires:
-    },
-  )(ctx);
 
   // Serve index.html as the root file
   await send(ctx, "index.html", { root: webDir });
@@ -114,7 +98,7 @@ const PromptRequest = z.object({
 const Request = z.discriminatedUnion("call", [UserRequest, PromptRequest]);
 
 async function handleUserApiCall(ctx: Koa.Context) {
-  const session = await parseTeleportJwtAssersionCookie(ctx);
+  const session = readTeleportJwtAssersion(ctx);
 
   if (!session) {
     ctx.status = 401;
@@ -154,12 +138,7 @@ async function handlePromptApiCall(
   ctx: Koa.Context,
   request: z.output<typeof PromptRequest>,
 ) {
-  const session = await parseTeleportJwtAssersionCookie(ctx);
-  console.log("API: Handling prompt request:", {
-    prompt: request.params.prompt,
-    roles: request.params.roles,
-    session,
-  });
+  const session = readTeleportJwtAssersion(ctx);
 
   if (!session) {
     ctx.status = 401;
@@ -185,8 +164,17 @@ async function handlePromptApiCall(
   });
 }
 
-function parseTeleportJwtAssersionCookie(ctx: Koa.Context) {
-  return parseCookie("teleportJwtAssertion")(ctx);
+/**
+ * Grab the injected Teleport assertion token
+ */
+function readTeleportJwtAssersion(ctx: Koa.Context) {
+  const teleportJwtAssertion = ctx.header["teleport-jwt-assertion"];
+
+  const token = Array.isArray(teleportJwtAssertion)
+    ? teleportJwtAssertion[0]
+    : teleportJwtAssertion;
+
+  return token;
 }
 
 /**
