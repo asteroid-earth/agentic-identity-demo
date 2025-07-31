@@ -5,7 +5,8 @@ import { Messages } from "@langchain/langgraph";
 import { execSync } from 'child_process';
 import { z } from "zod";
 import fetch from "node-fetch";
-import * as fs from "fs/promises";
+import { Agent } from "http";
+import axios from "axios";
 
 const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
@@ -17,51 +18,6 @@ const systemPrompt = "You are a helpful assistant to DevOps and Platform Enginee
 const sshCommandSchema = z.object({
   username: z.string().describe("The username to attempt to login as via the SSH connection. Unless otherwise specified, use 'ubuntu'."),
   sshCommand: z.string().describe("The command to run on the remote server."),
-  assertionToken: z.string().describe("The assertion token to use for authentication. This is a secret and should not be shared."),
-  roles: z.array(z.string()).describe("The roles that the user has. This is used to determine what commands the user is allowed to run."),
-});
-
-const sshCommandTool = tool(
-  async ({ username, sshCommand, assertionToken, roles }) => {
-
-    const logDebug = async (data: any) => {
-      const logEntry = `${new Date().toISOString()}: ${data}\n`;
-      await fs.appendFile(`${__dirname}/langgraph-debug.log`, logEntry);
-    };
-
-    await logDebug({roles, assertionToken})
-
-    const body = { roles };
-    const response = await fetch("http://127.0.0.1:8080/ssh-config", {
-      method: "post",
-      body: JSON.stringify(body),
-      headers: {
-        "Authorization": `Bearer ${assertionToken}`,
-      }
-    });
-
-    await logDebug({j: await response.json(), t: await response.text()})
-
-    const data = await response.json() as { path: string };
-
-    await logDebug({ data });
-
-    const path = data.path;
-
-    await logDebug({ path })
-
-    return execSync(`ssh -F ${path} ${username}@quotes.mwihack.cloud.gravitational.io ${sshCommand}`).toString()
-  }, {
-    schema: sshCommandSchema,
-    name: "run_ssh_command",
-    description: "Runs a command on a remote server via SSH using the user you specify.",
-  }
-)
-
-const agent = createReactAgent({
-  llm,
-  tools: [sshCommandTool],
-  prompt: systemPrompt,
 });
 
 export async function prompt(params: {
@@ -71,9 +27,70 @@ export async function prompt(params: {
 }) {
   console.log("AGENT: Received prompt", params);
 
-  const messages: Messages = [{role: "user", content: params.prompt}];
+  const sshCommandTool = tool(
+    async ({ username, sshCommand}) => {
 
-  messages.push("system", `In the SSH command tool, the assertion token to use is ${params.assertionToken} and the roles array to pass is ${params.roles}. Do not change the values of either one at all.`)
+      const body = { roles: params.roles };
+      const response = await fetch("http://127.0.0.1:8080/ssh-config", {
+        method: "post",
+        body: JSON.stringify(body),
+        headers: {
+          "Authorization": `Bearer ${params.assertionToken}`,
+        }
+      });
+
+      const data = await response.json() as { path: string };
+
+      const path = data.path;
+
+      return execSync(`ssh -F ${path} ${username}@quotes.mwihack.cloud.gravitational.io ${sshCommand}`).toString()
+    }, {
+      schema: sshCommandSchema,
+      name: "run_ssh_command",
+      description: "Runs a command on a remote server via SSH using the user you specify.",
+    }
+  )
+
+  const getQuoteTool = tool(
+    async () => {
+      const body = { roles: params.roles, application: "quotes" };
+
+      const socketResponse = await axios({
+        method: "post",
+        url: "http://127.0.0.1:8080/application-tunnel",
+        data: JSON.stringify(body),
+        headers: {
+          "Authorization": `Bearer ${params.assertionToken}`,
+        }
+      });
+
+      const data = await socketResponse.data as { id: string, address: string, expires: string };
+
+      let socketPath = data.address;
+
+      socketPath = socketPath.replace("unix://", "");
+
+      const quoteResponse = await axios({
+        url: "http://quotes.mwihack.cloud.gravitational.io/api/quotes/random",
+        socketPath,
+        method: "get"
+      });
+
+      return await quoteResponse.data
+    },
+    {
+      name: "get_quote",
+      description: "Gets a random quote from a remote application, along with the quote's category and status.",
+    }
+  );
+
+  const agent = createReactAgent({
+    llm,
+    tools: [sshCommandTool, getQuoteTool],
+    prompt: systemPrompt,
+  });
+
+  const messages: Messages = [{role: "user", content: params.prompt}];
 
   const response = await agent.invoke({messages});
 
