@@ -4,7 +4,6 @@ import { tool } from "@langchain/core/tools";
 import { Messages } from "@langchain/langgraph";
 import { execSync } from 'child_process';
 import { z } from "zod";
-import fetch from "node-fetch";
 import axios from "axios";
 import fs from 'fs/promises';
 
@@ -22,8 +21,6 @@ const sshCommandSchema = z.object({
 
 export async function prompt(params: {
   prompt: string;
-  roles: string[];
-  assertionToken: string;
 }) {
   console.log("AGENT: Received prompt", params);
 
@@ -33,22 +30,11 @@ export async function prompt(params: {
   };
 
   const sshCommandTool = tool(
-    async ({ username, sshCommand}) => {
+    async (sshCommand) => {
 
-      const body = { roles: params.roles };
-      const response = await fetch("http://127.0.0.1:8080/ssh-config", {
-        method: "post",
-        body: JSON.stringify(body),
-        headers: {
-          "Authorization": `Bearer ${params.assertionToken}`,
-        }
-      });
+      const path = "some/path/to/ssh/config";
 
-      const data = await response.json() as { path: string };
-
-      const path = data.path;
-
-      return execSync(`ssh -F ${path} ${username}@quotes.mwihack.cloud.gravitational.io ${sshCommand}`).toString()
+      return execSync(`ssh -F ${path} ubuntu@quotes.mwihack.cloud.gravitational.io ${sshCommand}`).toString()
     }, {
       schema: sshCommandSchema,
       name: "run_ssh_command",
@@ -58,27 +44,11 @@ export async function prompt(params: {
 
   const getQuoteTool = tool(
     async () => {
-      const body = { roles: params.roles, application: "quotes" };
 
-      const socketResponse = await axios({
-        method: "post",
-        url: "http://127.0.0.1:8080/application-tunnel",
-        data: body,
-        headers: {
-          "Authorization": `Bearer ${params.assertionToken}`,
-        }
-      });
-
-      const data = await socketResponse.data as { id: string, address: string, expires: string };
-
-      let socketPath = data.address;
-
-      socketPath = socketPath.replace("unix://", "");
+      const url = "http://quotes.mwihack.cloud.gravitational.io/api/quotes/random";
 
       const quoteResponse = await axios({
-        url: "http://quotes.mwihack.cloud.gravitational.io/api/quotes/random",
-        socketPath,
-        method: "get"
+        url,
       });
 
       logDebug(quoteResponse.data)
