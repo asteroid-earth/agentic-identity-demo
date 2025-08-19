@@ -6,6 +6,7 @@ import { execSync } from 'child_process';
 import { z } from "zod";
 import fetch from "node-fetch";
 import axios from "axios";
+import fs from 'fs/promises';
 
 const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
@@ -25,6 +26,11 @@ export async function prompt(params: {
   assertionToken: string;
 }) {
   console.log("AGENT: Received prompt", params);
+
+  const logDebug = async (data: any) => {
+    const logEntry = `${new Date().toISOString()}: ${JSON.stringify(data, null, 2)}\n`;
+    await fs.appendFile(`${__dirname}/langgraph-debug.log`, logEntry);
+  };
 
   const sshCommandTool = tool(
     async ({ username, sshCommand}) => {
@@ -57,7 +63,7 @@ export async function prompt(params: {
       const socketResponse = await axios({
         method: "post",
         url: "http://127.0.0.1:8080/application-tunnel",
-        data: JSON.stringify(body),
+        data: body,
         headers: {
           "Authorization": `Bearer ${params.assertionToken}`,
         }
@@ -74,6 +80,8 @@ export async function prompt(params: {
         socketPath,
         method: "get"
       });
+
+      logDebug(quoteResponse.data)
 
       return await quoteResponse.data
     },
