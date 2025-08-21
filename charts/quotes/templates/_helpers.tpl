@@ -50,7 +50,6 @@ app.kubernetes.io/name: {{ include "workload-app.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app: {{ .Values.app.name }}
 env: {{ .Values.app.environment | default "agent-demo" }}
-{{- if .Values.app.version }}
 {{- end }}
 
 {{/*
