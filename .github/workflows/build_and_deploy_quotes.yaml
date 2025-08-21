@@ -1,4 +1,4 @@
-name: Build and Deploy Awesome Agent
+name: Build and Deploy Quotes Application
 
 on: workflow_dispatch
 
