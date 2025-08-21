@@ -91,7 +91,6 @@ const PromptRequest = z.object({
   call: z.literal("prompt"),
   params: z.object({
     prompt: z.string(),
-    roles: z.string().array(),
   }),
 });
 
@@ -151,8 +150,6 @@ async function handlePromptApiCall(
 
   const resp = await prompt({
     prompt: request.params.prompt,
-    roles: request.params.roles,
-    assertionToken: session,
   });
 
   ctx.response.header["Content-Type"] = "application/json";
@@ -194,7 +191,6 @@ function parseSessionJwt(session: string) {
 }
 
 const TeleportJwtPayload = z.object({
-  roles: z.string().array(),
   sub: z.string(),
   traits: z.record(z.string(), z.string().array()),
 });

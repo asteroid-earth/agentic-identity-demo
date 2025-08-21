@@ -5,17 +5,15 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 export function App() {
   const [prompt, setPrompt] = useState("");
-  const [roles, setRoles] = useState<Record<string, boolean>>({});
   const [history, setHistory] = useState<
     readonly {
       prompt: string;
-      roles: string[];
       result: string;
       timestamp: Date;
     }[]
   >([]);
 
-  // Used to fetch user data including email/subject and assigned roles
+  // Used to fetch user data including email/subject
   const { isLoading, isSuccess, data, error } = useQuery({
     queryKey: ["user"],
     queryFn: ({ signal }) => fetchUser(signal),
@@ -31,9 +29,6 @@ export function App() {
         {
           prompt,
           result: data.data.result,
-          roles: Object.entries(roles)
-            .filter(([, checked]) => checked)
-            .map(([role]) => role),
           timestamp: new Date(),
         },
       ]);
@@ -45,9 +40,6 @@ export function App() {
         {
           prompt,
           result: error.message,
-          roles: Object.entries(roles)
-            .filter(([, checked]) => checked)
-            .map(([role]) => role),
           timestamp: new Date(),
         },
       ]);
@@ -68,23 +60,12 @@ export function App() {
 
     await mutateAsync({
       prompt,
-      roles: Object.entries(roles)
-        .filter(([, checked]) => checked)
-        .map(([role]) => role),
     });
-  };
-
-  // Toggle the selected state for the given role
-  const handleRoleToggled = (role: string) => {
-    setRoles((prevRoles) => ({
-      ...prevRoles,
-      [role]: !prevRoles[role],
-    }));
   };
 
   // Whether the submit button is enabled
   const submitEnabled =
-    !!prompt && Object.values(roles).some((checked) => checked) && !isPending;
+    !!prompt && !isPending;
 
   const fullHistory = (
     isPending
@@ -92,9 +73,6 @@ export function App() {
           ...history,
           {
             prompt,
-            roles: Object.entries(roles)
-              .filter(([, checked]) => checked)
-              .map(([role]) => role),
             timestamp: new Date(),
             result: "Thinking...",
           },
@@ -131,29 +109,6 @@ export function App() {
           value={prompt}
         />
 
-        <fieldset>
-          <legend>Allow roles:</legend>
-
-          {isSuccess ? (
-            <RolesContainer>
-              {data.data.user.roles.map((role) => (
-                <div key={role}>
-                  <input
-                    type="checkbox"
-                    id={role}
-                    name={role}
-                    checked={roles[role]}
-                    onChange={() => handleRoleToggled(role)}
-                  />
-                  <label htmlFor={role}>{role}</label>
-                </div>
-              ))}
-            </RolesContainer>
-          ) : (
-            <p>No roles</p>
-          )}
-        </fieldset>
-
         <button type="submit" disabled={!submitEnabled}>
           Send
         </button>
@@ -166,7 +121,7 @@ export function App() {
             {fullHistory.map((h) => {
               return [
                 <dt key={h.timestamp.toISOString() + "_t"}>
-                  <strong>You ({h.roles.sort().join(", ")}):</strong> {h.prompt}
+                  <strong>You:</strong> {h.prompt}
                 </dt>,
                 <dd key={h.timestamp.toISOString() + "_d"}>
                   <strong>Agent ({h.timestamp.toLocaleTimeString()}):</strong>{" "}
@@ -196,12 +151,6 @@ const Form = styled.form`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 16px;
-`;
-
-const RolesContainer = styled.div`
-  display: inline-flex;
-  flex-wrap: wrap;
   gap: 16px;
 `;
 
@@ -235,7 +184,6 @@ async function fetchUser(signal: AbortSignal) {
   return resp.json() as Promise<{
     data: {
       user: {
-        roles: string[];
         sub: string;
         traits: Record<string, string[]>;
       };
@@ -243,8 +191,8 @@ async function fetchUser(signal: AbortSignal) {
   }>;
 }
 
-// Api call to submit a prompt and the allowed roles
-async function submitPrompt(variables: { prompt: string; roles: string[] }) {
+// Api call to submit a prompt
+async function submitPrompt(variables: { prompt: string;}) {
   const resp = await fetch("/api", {
     method: "POST",
     headers: {
