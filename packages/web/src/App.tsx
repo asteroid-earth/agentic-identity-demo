@@ -120,6 +120,9 @@ export function App() {
           <dl>
             {fullHistory.map((h) => {
               return [
+                <dt key={h.timestamp.toISOString() + "_t"}>
+                  <strong>You:</strong> {h.prompt}
+                </dt>,
                 <dd key={h.timestamp.toISOString() + "_d"}>
                   <strong>Agent ({h.timestamp.toLocaleTimeString()}):</strong>{" "}
                   {h.result}
