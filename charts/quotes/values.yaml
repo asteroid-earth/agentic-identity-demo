@@ -1,0 +1,19 @@
+---
+app:
+  name: quotes
+  namespace: agent-demo
+  replicas: 1
+
+image:
+  repository: 668558765449.dkr.ecr.us-west-2.amazonaws.com/agent-demo-30bad72
+  tag:
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 443
+  targetPort: 3000
+
+serviceAccount:
+  create: true
+  name: quotes

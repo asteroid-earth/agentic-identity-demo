@@ -1,0 +1,3 @@
+[profile agent-demo-deployment]
+region = us-west-2
+credential_process = /home/runner/work/agentic-identity-demo/agentic-identity-demo/aws_signing_helper credential-process --certificate /home/runner/work/agentic-identity-demo/agentic-identity-demo/svid-out/svid.pem --private-key /home/runner/work/agentic-identity-demo/agentic-identity-demo/svid-out/svid_key.pem --profile-arn 'arn:aws:rolesanywhere:us-west-2:668558765449:profile/dc8c9af8-072a-4d90-839c-70687d2a510f' --trust-anchor-arn 'arn:aws:rolesanywhere:us-west-2:668558765449:trust-anchor/37b8fbad-5b60-4220-a062-f1a9fb14d438' --role-arn 'arn:aws:iam::668558765449:role/AgentDemoDeployment'

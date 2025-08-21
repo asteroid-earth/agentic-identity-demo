@@ -1,0 +1,7 @@
+---
+apiVersion: v2
+name: quotes
+description: A Helm chart for quotes app for agent to access
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
