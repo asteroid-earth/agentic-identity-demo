@@ -36,19 +36,10 @@ spec:
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
-          volumeMounts:
-            - name: tbot-sockets
-              mountPath: {{ .Values.volumes.tbotSockets.mountPath }}
-              readOnly: {{ .Values.volumes.tbotSockets.readOnly }}
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      volumes:
-        - name: tbot-sockets
-          hostPath:
-            path: {{ .Values.volumes.tbotSockets.hostPath }}
-            type: Directory
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
