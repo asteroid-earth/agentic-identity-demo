@@ -6,6 +6,7 @@ on:
     paths:
       - 'packages/**'
       - 'ansible/**'
+      - '.github/**'
   pull_request:
     branches: [ main ]
     paths:
