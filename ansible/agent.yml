@@ -1,0 +1,259 @@
+---
+- name: Setup tbot services
+  hosts: agent-demo-app.mwidemo.cloud.gravitational.io
+  remote_user: root
+  vars:
+    app_user: awesomeagent
+    app_group: awesomeagent
+    app_uid: 3000
+    app_gid: 3000
+    app_directory: /home/awesomeagent
+    service_name: awesome-agent
+    container_name: awesome-agent-container
+    agent_image_uri: "{{ image_uri | default('668558765449.dkr.ecr.us-west-2.amazonaws.com/agent-demo-30bad72:agent-latest') }}"
+
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages for Docker
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch={{ ansible_architecture | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Create agent group
+      group:
+        name: "{{ app_group }}"
+        gid: "{{ app_gid }}"
+        state: present
+
+    - name: Create application user
+      user:
+        name: "{{ app_user }}"
+        uid: "{{ app_uid }}"
+        group: "{{ app_group }}"
+        shell: /bin/bash
+        home: "/home/{{ app_user }}"
+        create_home: yes
+        groups: docker
+        append: yes
+        state: present
+
+    - name: Add tbot dir in temp for sockets
+      ansible.builtin.file:
+        path: /tmp/tbot
+        state: directory
+        recurse: yes
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0777'
+
+    - name: Create config file for tbot
+      copy:
+        content: |
+          version: v2
+          auth_server: mwidemo.cloud.gravitational.io:443
+          onboarding:
+            join_method: iam
+            token: agent-demo-bot
+          storage:
+            type: directory
+            path: "/home/awesomeagent/tbot"
+          services:
+          - type: application-tunnel
+            app_name: quotes
+            listen: tcp://127.0.0.1:3000
+          outputs:
+          - type: identity
+            ssh_config: on
+            destination:
+              type: directory
+              path: /home/awesomeagent/machine-id
+        dest: /etc/tbot.yaml
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0644'
+      notify: Restart tbot
+    
+    - name: Create systemd service file for tbot
+      copy:
+        content: |
+          [Unit]
+          Description=tbot - Teleport Machine ID Service
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=awesomeagent
+          Group=awesomeagent
+          Restart=always
+          RestartSec=5
+          Environment="TELEPORT_ANONYMOUS_TELEMETRY=0"
+          ExecStart=/usr/local/bin/tbot start -c /etc/tbot.yaml
+          ExecReload=/bin/kill -HUP $MAINPID
+          PIDFile=/run/tbot.pid
+          LimitNOFILE=524288
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/tbot.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Start and enable tbot service
+      systemd:
+        name: tbot
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Create AWS directory
+      file:
+        path: /home/{{ app_user }}/.aws
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0700'
+        state: directory
+
+    - name: Configure AWS CLI for ECR authentication
+      copy:
+        dest: /home/{{ app_user }}/.aws/config
+        content: |
+          [default]
+          region = us-west-2
+          [profile agent-demo-deployment]
+          region = us-west-2
+          credential_source = Ec2InstanceMetadata
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0600'
+
+    - name: Install AWS CLI
+      snap:
+        name: aws-cli
+        classic: yes
+
+    - name: Download and install amazon-ecr-credential-helper
+      get_url:
+        url: "https://amazon-ecr-credential-helper-releases.s3.us-east-2.amazonaws.com/0.10.1/linux-{{ ansible_architecture | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}/docker-credential-ecr-login"
+        dest: /usr/local/bin/docker-credential-ecr-login
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Create Docker config directory for user
+      file:
+        path: /home/{{ app_user }}/.docker
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0700'
+        state: directory
+
+    - name: Configure Docker to use ECR credential helper
+      copy:
+        dest: /home/{{ app_user }}/.docker/config.json
+        content: |
+          {
+            "credsStore": "ecr-login"
+          }
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0600'
+
+    - name: Pull Docker image
+      docker_image:
+        name: "{{ agent_image_uri }}"
+        source: pull
+      become_user: "{{ app_user }}"
+      become: true
+      environment:
+        AWS_PROFILE: agent-demo-deployment
+
+    - name: Create systemd service file for Docker container
+      copy:
+        dest: /etc/systemd/system/{{ service_name }}.service
+        content: |
+          [Unit]
+          Description=Agentic Identity Demo Container
+          After=network.target docker.service
+          Requires=docker.service
+          
+          [Service]
+          Type=oneshot
+          RemainAfterExit=true
+          User={{ app_user }}
+          Group={{ app_group }}
+          WorkingDirectory={{ app_directory }}
+          ExecStartPre=-/usr/bin/docker stop {{ container_name }}
+          ExecStartPre=-/usr/bin/docker rm {{ container_name }}
+          ExecStart=/usr/bin/docker run -d \
+            --name {{ container_name }} \
+            --restart unless-stopped \
+            -e WEB_PORT=5200 \
+            -e GOOGLE_API_KEY=abc123
+            --network host \
+            {{ agent_image_uri }}
+          ExecStop=/usr/bin/docker stop {{ container_name }}
+          ExecStopPost=/usr/bin/docker rm {{ container_name }}
+          Restart=on-failure
+          RestartSec=5
+          
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+      notify:
+        - Reload systemd
+        - Enable and start service
+
+  handlers:
+    - name: Restart tbot
+      systemd:
+        name: tbot
+        state: restarted
+        enabled: yes
+      when: ansible_facts.services['tbot.service'] is defined
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+    - name: Enable and start service
+      systemd:
+        name: "{{ service_name }}"
+        enabled: yes
+        state: started

@@ -20,6 +20,10 @@ outputs:
           - dev-rel-staging
         component:
           - deployment-bot
+  - type: identity
+    destination:
+      type: directory
+      path: ./ssh-out
   - type: kubernetes/v2
     selectors:
       - name: mwi-demo-eks-us-west-2-668558765449
