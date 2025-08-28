@@ -32,9 +32,9 @@ export async function prompt(params: {
   const sshCommandTool = tool(
     async (sshCommand) => {
 
-      const path = "some/path/to/ssh/config";
+      const path = process.env.SSH_CONFIG_PATH;
 
-      return execSync(`ssh -F ${path} ubuntu@quotes.mwihack.cloud.gravitational.io ${sshCommand}`).toString()
+      return execSync(`ssh -F ${path} ubuntu@agent-demo-target.mwidemo.cloud.gravitational.io ${sshCommand}`).toString()
     }, {
       schema: sshCommandSchema,
       name: "run_ssh_command",
@@ -45,7 +45,7 @@ export async function prompt(params: {
   const getQuoteTool = tool(
     async () => {
 
-      const url = "http://quotes.mwihack.cloud.gravitational.io/api/quotes/random";
+      const url = "http://quotes.mwidemo.cloud.gravitational.io/api/quotes/random";
 
       const quoteResponse = await axios({
         url,
