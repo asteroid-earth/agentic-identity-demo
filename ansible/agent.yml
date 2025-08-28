@@ -227,7 +227,7 @@
             --name {{ container_name }} \
             --restart unless-stopped \
             -e WEB_PORT=5200 \
-            -e GOOGLE_API_KEY=abc123
+            -e GOOGLE_API_KEY=abc123 \
             -e SSH_CONFIG_PATH=/home/awesomeagent/machine-id/ssh_config \
             --network host \
             {{ agent_image_uri }}
