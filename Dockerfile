@@ -10,6 +10,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 WORKDIR /app/packages/web
 RUN pnpm build
+RUN cp -r dist ../backend/.web
 
 WORKDIR /app/packages/backend
 EXPOSE 5200
