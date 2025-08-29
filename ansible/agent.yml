@@ -65,7 +65,6 @@
         shell: /bin/bash
         home: "/home/{{ app_user }}"
         create_home: yes
-        groups: docker
         append: yes
         state: present
 
