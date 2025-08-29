@@ -16,34 +16,31 @@
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Install required packages for Node.js installation
+    - name: Install build essentials and curl
       apt:
         name:
           - curl
-          - gnupg
-          - ca-certificates
-          - lsb-release
+          - build-essential
         state: present
 
-    - name: Add NodeSource GPG key
-      apt_key:
-        url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
-        state: present
+    - name: Install n (Node.js version manager)
+      shell: |
+        curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o /usr/local/bin/n
+        chmod +x /usr/local/bin/n
+      args:
+        creates: /usr/local/bin/n
 
-    - name: Add NodeSource repository for Node.js 22
-      apt_repository:
-        repo: "deb https://deb.nodesource.com/node_22.x {{ ansible_distribution_release }} main"
-        state: present
-        filename: nodesource
+    - name: Install Node.js 24 using nvm
+      shell: /usr/local/bin/n 24
+      environment:
+        N_PREFIX: /usr/local
 
-    - name: Update apt cache after adding NodeSource repository
-      apt:
-        update_cache: yes
-
-    - name: Install Node.js 24
-      apt:
-        name: nodejs
-        state: present
+    - name: Ensure Node.js binaries are in PATH for all users
+      lineinfile:
+        path: /etc/profile.d/nodejs.sh
+        line: 'export PATH="/usr/local/bin:$PATH"'
+        create: yes
+        mode: '0644'
 
     - name: Install pnpm 10 globally via npm
       npm:
@@ -51,6 +48,8 @@
         version: "10"
         global: yes
         state: present
+      environment:
+        PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
 
     - name: Create agent group
       group:
