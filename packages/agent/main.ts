@@ -7,6 +7,11 @@ import { z } from "zod";
 import axios from "axios";
 import fs from 'fs/promises';
 
+interface SshCommand {
+  username: string;
+  sshCommand: string;
+}
+
 const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
   maxOutputTokens: 2048,
@@ -32,9 +37,9 @@ export async function prompt(params: {
   const sshCommandTool = tool(
     async (sshCommand) => {
 
-      const path = process.env.SSH_CONFIG_PATH;
+      const commandObject = sshCommand as SshCommand
 
-      return execSync(`ssh -F ${path} ubuntu@agent-demo-target.mwidemo.cloud.gravitational.io ${sshCommand}`).toString()
+      return execSync(`ssh -F /home/awesomeagent/machine-id/ssh_config ${commandObject.username}@agent-demo-target.mwidemo.cloud.gravitational.io ${commandObject.sshCommand}`).toString()
     }, {
       schema: sshCommandSchema,
       name: "run_ssh_command",

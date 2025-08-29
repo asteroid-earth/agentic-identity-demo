@@ -65,7 +65,6 @@
         shell: /bin/bash
         home: "/home/{{ app_user }}"
         create_home: yes
-        append: yes
         state: present
 
     - name: Add tbot dir in temp for sockets
@@ -84,7 +83,7 @@
           auth_server: mwidemo.cloud.gravitational.io:443
           onboarding:
             join_method: iam
-            token: agent-demo-bot
+            token: agent-demo-instance
           storage:
             type: directory
             path: "/home/awesomeagent/tbot"
@@ -139,6 +138,8 @@
         daemon_reload: yes
 
     - name: Pull latest version of awesome agent
+      become: yes
+      beome_user: "{{ app_user }}"
       git:
         repo: https://github.com/asteroid-earth/agentic-identity-demo.git
         dest: /home/awesomeagent/agentic-identity-demo
@@ -146,7 +147,7 @@
         update: yes
         force: yes
 
-    - name: Install dependencies in web package
+    - name: Install dependencies package
       become: yes
       become_user: "{{ app_user }}"
       shell: |
@@ -190,7 +191,7 @@
           Environment="GOOGLE_API_KEY=abc123"
           Environment="SSH_CONFIG_PATH=/home/awesomeagent/machine-id/ssh_config"
           Environment="PATH=/usr/bin:/bin:/usr/local/bin"
-          ExecStart=/usr/bin/node --import jiti/register main.ts
+          ExecStart=/usr/local/bin/node --import jiti/register main.ts
           Restart=on-failure
           RestartSec=5
           
