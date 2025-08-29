@@ -30,9 +30,9 @@
         url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
         state: present
 
-    - name: Add NodeSource repository for Node.js 24
+    - name: Add NodeSource repository for Node.js 22
       apt_repository:
-        repo: "deb https://deb.nodesource.com/node_24.x {{ ansible_distribution_release }} main"
+        repo: "deb https://deb.nodesource.com/node_22.x {{ ansible_distribution_release }} main"
         state: present
         filename: nodesource
 
