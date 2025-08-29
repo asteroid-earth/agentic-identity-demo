@@ -45,7 +45,7 @@ export async function prompt(params: {
   const getQuoteTool = tool(
     async () => {
 
-      const url = "http://quotes.mwidemo.cloud.gravitational.io/api/quotes/random";
+      const url = "http://localhost:3000/api/quotes/random";
 
       const quoteResponse = await axios({
         url,

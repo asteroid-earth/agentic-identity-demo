@@ -1,5 +1,5 @@
 ---
-- name: Setup tbot services
+- name: Setup awesome agent services
   hosts: agent-demo-app.mwidemo.cloud.gravitational.io
   remote_user: root
   vars:
@@ -7,10 +7,8 @@
     app_group: awesomeagent
     app_uid: 3000
     app_gid: 3000
-    app_directory: /home/awesomeagent
     service_name: awesome-agent
-    container_name: awesome-agent-container
-    agent_image_uri: "{{ image_uri | default('668558765449.dkr.ecr.us-west-2.amazonaws.com/agent-demo-30bad72:agent-latest') }}"
+    git_version: "{{ git_sha | default(git_branch) | default('main') }}"
 
   tasks:
     - name: Update apt package cache
@@ -18,43 +16,41 @@
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Install required packages for Docker
+    - name: Install required packages for Node.js installation
       apt:
         name:
-          - apt-transport-https
-          - ca-certificates
           - curl
           - gnupg
+          - ca-certificates
           - lsb-release
-          - software-properties-common
         state: present
 
-    - name: Add Docker GPG key
+    - name: Add NodeSource GPG key
       apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
+        url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
         state: present
 
-    - name: Add Docker repository
+    - name: Add NodeSource repository for Node.js 24
       apt_repository:
-        repo: "deb [arch={{ ansible_architecture | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        repo: "deb https://deb.nodesource.com/node_24.x {{ ansible_distribution_release }} main"
         state: present
+        filename: nodesource
 
-    - name: Install Docker
+    - name: Update apt cache after adding NodeSource repository
       apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-buildx-plugin
-          - docker-compose-plugin
-        state: present
         update_cache: yes
 
-    - name: Start and enable Docker service
-      systemd:
-        name: docker
-        state: started
-        enabled: yes
+    - name: Install Node.js 24
+      apt:
+        name: nodejs
+        state: present
+
+    - name: Install pnpm 10 globally via npm
+      npm:
+        name: pnpm
+        version: "10"
+        global: yes
+        state: present
 
     - name: Create agent group
       group:
@@ -144,95 +140,59 @@
         enabled: yes
         daemon_reload: yes
 
-    - name: Create AWS directory
-      file:
-        path: /home/{{ app_user }}/.aws
-        owner: "{{ app_user }}"
-        group: "{{ app_group }}"
-        mode: '0700'
-        state: directory
+    - name: Pull latest version of awesome agent
+      git:
+        repo: https://github.com/asteroid-earth/agentic-identity-demo.git
+        dest: /home/awesomeagent/agentic-identity-demo
+        version: "{{ git_version}}"
+        update: yes
+        force: yes
 
-    - name: Configure AWS CLI for ECR authentication
-      copy:
-        dest: /home/{{ app_user }}/.aws/config
-        content: |
-          [default]
-          region = us-west-2
-          [profile agent-demo-deployment]
-          region = us-west-2
-          credential_source = Ec2InstanceMetadata
-        owner: "{{ app_user }}"
-        group: "{{ app_group }}"
-        mode: '0600'
-
-    - name: Install AWS CLI
-      snap:
-        name: aws-cli
-        classic: yes
-
-    - name: Download and install amazon-ecr-credential-helper
-      get_url:
-        url: "https://amazon-ecr-credential-helper-releases.s3.us-east-2.amazonaws.com/0.10.1/linux-{{ ansible_architecture | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}/docker-credential-ecr-login"
-        dest: /usr/local/bin/docker-credential-ecr-login
-        mode: '0755'
-        owner: root
-        group: root
-
-    - name: Create Docker config directory for user
-      file:
-        path: /home/{{ app_user }}/.docker
-        owner: "{{ app_user }}"
-        group: "{{ app_group }}"
-        mode: '0700'
-        state: directory
-
-    - name: Configure Docker to use ECR credential helper
-      copy:
-        dest: /home/{{ app_user }}/.docker/config.json
-        content: |
-          {
-            "credsStore": "ecr-login"
-          }
-        owner: "{{ app_user }}"
-        group: "{{ app_group }}"
-        mode: '0600'
-
-    - name: Pull Docker image
-      docker_image:
-        name: "{{ agent_image_uri }}"
-        source: pull
+    - name: Install dependencies in web package
+      become: yes
       become_user: "{{ app_user }}"
-      become: true
-      environment:
-        AWS_PROFILE: agent-demo-deployment
+      shell: |
+        source ~/.bashrc
+        pnpm install
+      args:
+        executable: /bin/bash
+        chdir: /home/awesomeagent/agentic-identity-demo
 
-    - name: Create systemd service file for Docker container
+    - name: Build web package
+      become: yes
+      become_user: "{{ app_user }}"
+      shell: |
+        source ~/.bashrc
+        pnpm build
+      args:
+        executable: /bin/bash
+        chdir: /home/awesomeagent/agentic-identity-demo/packages/web
+
+    - name: Copy web dist to backend directory
+      become: yes
+      become_user: "{{ app_user }}"
+      shell: cp -r ../web/dist ./.web
+      args:
+        chdir: /home/awesomeagent/agentic-identity-demo/packages/backend
+        creates: /home/awesomeagent/agentic-identity-demo/packages/backend/.web
+
+    - name: Create systemd service file for awesome agent
       copy:
         dest: /etc/systemd/system/{{ service_name }}.service
         content: |
           [Unit]
-          Description=Agentic Identity Demo Container
-          After=network.target docker.service
-          Requires=docker.service
+          Description=Agentic Identity Demo
+          After=network.target
           
           [Service]
-          Type=oneshot
-          RemainAfterExit=true
+          Type=simple
           User={{ app_user }}
           Group={{ app_group }}
-          WorkingDirectory={{ app_directory }}
-          ExecStartPre=-/usr/bin/docker stop {{ container_name }}
-          ExecStartPre=-/usr/bin/docker rm {{ container_name }}
-          ExecStart=/usr/bin/docker run -d \
-            --name {{ container_name }} \
-            --restart unless-stopped \
-            -e WEB_PORT=5200 \
-            -e GOOGLE_API_KEY=abc123 \
-            -e SSH_CONFIG_PATH=/home/awesomeagent/machine-id/ssh_config \
-            --network host \
-            {{ agent_image_uri }}
-          ExecStop=/usr/bin/docker stop {{ container_name }}
-          ExecStopPost=/usr/bin/docker rm {{ container_name }}
+          WorkingDirectory=/home/awesomeagent/agentic-identity-demo/packages/backend
+          Environment="GOOGLE_API_KEY=abc123"
+          Environment="SSH_CONFIG_PATH=/home/awesomeagent/machine-id/ssh_config"
+          Environment="PATH=/usr/bin:/bin:/usr/local/bin"
+          ExecStart=/usr/bin/node --import jiti/register main.ts
           Restart=on-failure
           RestartSec=5
           
