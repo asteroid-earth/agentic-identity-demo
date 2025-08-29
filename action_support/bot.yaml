@@ -8,18 +8,6 @@ renewal_interval: 5m
 storage:
   type: memory
 outputs:
-  - type: workload-identity-x509
-    destination:
-      type: directory
-      path: ./svid-out
-    selector:
-      labels:
-        env:
-          - agent-demo
-        aws-account:
-          - dev-rel-staging
-        component:
-          - deployment-bot
   - type: identity
     destination:
       type: directory
