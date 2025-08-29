@@ -139,7 +139,7 @@
 
     - name: Pull latest version of awesome agent
       become: yes
-      beome_user: "{{ app_user }}"
+      become_user: "{{ app_user }}"
       git:
         repo: https://github.com/asteroid-earth/agentic-identity-demo.git
         dest: /home/awesomeagent/agentic-identity-demo
