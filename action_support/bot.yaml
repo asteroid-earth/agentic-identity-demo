@@ -8,18 +8,10 @@ renewal_interval: 5m
 storage:
   type: memory
 outputs:
-  - type: workload-identity-x509
+  - type: identity
     destination:
       type: directory
-      path: ./svid-out
-    selector:
-      labels:
-        env:
-          - agent-demo
-        aws-account:
-          - dev-rel-staging
-        component:
-          - deployment-bot
+      path: ./ssh-out
   - type: kubernetes/v2
     selectors:
       - name: mwi-demo-eks-us-west-2-668558765449

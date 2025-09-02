@@ -7,6 +7,11 @@ import { z } from "zod";
 import axios from "axios";
 import fs from 'fs/promises';
 
+interface SshCommand {
+  username: string;
+  sshCommand: string;
+}
+
 const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
   maxOutputTokens: 2048,
@@ -32,9 +37,9 @@ export async function prompt(params: {
   const sshCommandTool = tool(
     async (sshCommand) => {
 
-      const path = "some/path/to/ssh/config";
+      const commandObject = sshCommand as SshCommand
 
-      return execSync(`ssh -F ${path} ubuntu@quotes.mwihack.cloud.gravitational.io ${sshCommand}`).toString()
+      return execSync(`ssh -F /home/awesomeagent/machine-id/ssh_config ${commandObject.username}@agent-demo-target.mwidemo.cloud.gravitational.io ${commandObject.sshCommand}`).toString()
     }, {
       schema: sshCommandSchema,
       name: "run_ssh_command",
@@ -45,7 +50,7 @@ export async function prompt(params: {
   const getQuoteTool = tool(
     async () => {
 
-      const url = "http://quotes.mwihack.cloud.gravitational.io/api/quotes/random";
+      const url = "http://localhost:3000/api/quotes/random";
 
       const quoteResponse = await axios({
         url,

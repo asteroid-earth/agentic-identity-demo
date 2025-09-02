@@ -1,0 +1,219 @@
+---
+- name: Setup awesome agent services
+  hosts: agent-demo-app.mwidemo.cloud.gravitational.io
+  remote_user: root
+  vars:
+    app_user: awesomeagent
+    app_group: awesomeagent
+    app_uid: 3000
+    app_gid: 3000
+    service_name: awesome-agent
+    git_version: "{{ git_sha | default(git_branch) | default('main') }}"
+
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install build essentials and curl
+      apt:
+        name:
+          - curl
+          - build-essential
+        state: present
+
+    - name: Install n (Node.js version manager)
+      shell: |
+        curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o /usr/local/bin/n
+        chmod +x /usr/local/bin/n
+      args:
+        creates: /usr/local/bin/n
+
+    - name: Install Node.js 24 using nvm
+      shell: /usr/local/bin/n 24
+      environment:
+        N_PREFIX: /usr/local
+
+    - name: Ensure Node.js binaries are in PATH for all users
+      lineinfile:
+        path: /etc/profile.d/nodejs.sh
+        line: 'export PATH="/usr/local/bin:$PATH"'
+        create: yes
+        mode: '0644'
+
+    - name: Install pnpm 10 globally via npm
+      npm:
+        name: pnpm
+        version: "10"
+        global: yes
+        state: present
+      environment:
+        PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+
+    - name: Create agent group
+      group:
+        name: "{{ app_group }}"
+        gid: "{{ app_gid }}"
+        state: present
+
+    - name: Create application user
+      user:
+        name: "{{ app_user }}"
+        uid: "{{ app_uid }}"
+        group: "{{ app_group }}"
+        shell: /bin/bash
+        home: "/home/{{ app_user }}"
+        create_home: yes
+        state: present
+
+    - name: Add tbot dir in temp for sockets
+      ansible.builtin.file:
+        path: /tmp/tbot
+        state: directory
+        recurse: yes
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0777'
+
+    - name: Create config file for tbot
+      copy:
+        content: |
+          version: v2
+          auth_server: mwidemo.cloud.gravitational.io:443
+          onboarding:
+            join_method: iam
+            token: agent-demo-instance
+          storage:
+            type: directory
+            path: "/home/awesomeagent/tbot"
+          services:
+          - type: application-tunnel
+            app_name: quotes
+            listen: tcp://127.0.0.1:3000
+          outputs:
+          - type: identity
+            ssh_config: on
+            destination:
+              type: directory
+              path: /home/awesomeagent/machine-id
+        dest: /etc/tbot.yaml
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0644'
+      notify: Restart tbot
+    
+    - name: Create systemd service file for tbot
+      copy:
+        content: |
+          [Unit]
+          Description=tbot - Teleport Machine ID Service
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=awesomeagent
+          Group=awesomeagent
+          Restart=always
+          RestartSec=5
+          Environment="TELEPORT_ANONYMOUS_TELEMETRY=0"
+          ExecStart=/usr/local/bin/tbot start -c /etc/tbot.yaml
+          ExecReload=/bin/kill -HUP $MAINPID
+          PIDFile=/run/tbot.pid
+          LimitNOFILE=524288
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/tbot.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Start and enable tbot service
+      systemd:
+        name: tbot
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Pull latest version of awesome agent
+      become: yes
+      become_user: "{{ app_user }}"
+      git:
+        repo: https://github.com/asteroid-earth/agentic-identity-demo.git
+        dest: /home/awesomeagent/agentic-identity-demo
+        version: "{{ git_version}}"
+        update: yes
+        force: yes
+
+    - name: Install dependencies package
+      become: yes
+      become_user: "{{ app_user }}"
+      shell: |
+        source ~/.bashrc
+        pnpm install
+      args:
+        executable: /bin/bash
+        chdir: /home/awesomeagent/agentic-identity-demo
+
+    - name: Build web package
+      become: yes
+      become_user: "{{ app_user }}"
+      shell: |
+        source ~/.bashrc
+        pnpm build
+      args:
+        executable: /bin/bash
+        chdir: /home/awesomeagent/agentic-identity-demo/packages/web
+
+    - name: Copy web dist to backend directory
+      become: yes
+      become_user: "{{ app_user }}"
+      shell: cp -r ../web/dist ./.web
+      args:
+        chdir: /home/awesomeagent/agentic-identity-demo/packages/backend
+        creates: /home/awesomeagent/agentic-identity-demo/packages/backend/.web
+
+    - name: Create systemd service file for awesome agent
+      copy:
+        dest: /etc/systemd/system/{{ service_name }}.service
+        content: |
+          [Unit]
+          Description=Agentic Identity Demo
+          After=network.target
+          
+          [Service]
+          Type=simple
+          User={{ app_user }}
+          Group={{ app_group }}
+          WorkingDirectory=/home/awesomeagent/agentic-identity-demo/packages/backend
+          Environment="GOOGLE_API_KEY=abc123"
+          Environment="SSH_CONFIG_PATH=/home/awesomeagent/machine-id/ssh_config"
+          Environment="PATH=/usr/bin:/bin:/usr/local/bin"
+          ExecStart=/usr/local/bin/node --import jiti/register main.ts
+          Restart=on-failure
+          RestartSec=5
+          
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+      notify:
+        - Reload systemd
+        - Enable and start service
+
+  handlers:
+    - name: Restart tbot
+      systemd:
+        name: tbot
+        state: restarted
+        enabled: yes
+      when: ansible_facts.services['tbot.service'] is defined
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+    - name: Enable and start service
+      systemd:
+        name: "{{ service_name }}"
+        enabled: yes
+        state: started
