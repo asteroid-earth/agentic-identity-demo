@@ -1,5 +1,7 @@
 # agentic-identity-demo
 
+![Architecture diagram of the Agentid Identity demo](./architecture.png)
+
 A simple PNPM workspaces mono repo with web, backend and agent packages.
 
 Web - A frontend app for users to interact with the agent.
