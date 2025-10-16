@@ -79,11 +79,15 @@ jobs:
 
       - name: Add short hostname support to SSH config
         run: |
-          # Prepend short hostname mapping to the tbot-generated config
+          # Prepend short hostname config that uses Teleport certs but keeps short hostname
           cat > ./ssh-out/ssh_config_wrapper << EOF
-          # Short hostname support - expand to FQDN
+          # Short hostname support - use Teleport certs without domain suffix
           Host agent-demo-app agent-demo-target
-              Hostname %h.${{ steps.config.outputs.teleport_cluster }}
+              UserKnownHostsFile "$PWD/ssh-out/known_hosts"
+              IdentityFile "$PWD/ssh-out/key"
+              CertificateFile "$PWD/ssh-out/key-cert.pub"
+              Port 3022
+              ProxyCommand '/opt/hostedtoolcache/teleport/18.1.5-linux-amd64/x64/tbot' ssh-proxy-command --destination-dir='$PWD/ssh-out' --proxy-server='${{ steps.config.outputs.teleport_cluster }}:443' --cluster='${{ steps.config.outputs.teleport_cluster }}' --tls-routing --no-connection-upgrade --resume --user=%r --host=%h --port=%p
 
           EOF
           cat ./ssh-out/ssh_config >> ./ssh-out/ssh_config_wrapper
