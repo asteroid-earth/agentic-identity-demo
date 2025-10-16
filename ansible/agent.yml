@@ -1,7 +1,8 @@
 ---
 - name: Setup awesome agent services
   hosts: all
-  remote_user: root
+  remote_user: ubuntu
+  become: yes
   vars:
     service_name: "{{ app_name }}"
     git_version: "{{ git_sha | default(git_branch) | default('main') }}"
