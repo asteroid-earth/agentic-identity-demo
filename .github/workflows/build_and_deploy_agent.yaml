@@ -103,7 +103,7 @@ jobs:
         env:
           ANSIBLE_CONFIG: ./action_support/ansible.cfg
         run: |
-          ansible-playbook -i -vvv ./ansible/hosts ./ansible/agent.yml \
+          ansible-playbook -vvv -i ./ansible/hosts ./ansible/agent.yml \
             -e "git_sha=${{ github.sha }}" \
             -e "teleport_cluster_domain=${{ steps.config.outputs.teleport_cluster }}" \
             -e "teleport_token_iam=${{ steps.config.outputs.teleport_token_iam }}" \
