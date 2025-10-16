@@ -109,6 +109,7 @@ jobs:
       - name: Deploy awesome agent application
         env:
           ANSIBLE_CONFIG: ./action_support/ansible.cfg
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           ansible-playbook -vvv -i ./ansible/hosts ./ansible/agent.yml \
             -e "git_sha=${{ github.sha }}" \
