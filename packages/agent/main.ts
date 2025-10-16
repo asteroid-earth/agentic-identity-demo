@@ -20,6 +20,7 @@ const QUOTES_API_URL = process.env.QUOTES_API_URL || "http://localhost:3000/api/
 const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
   maxOutputTokens: 2048,
+  apiKey: process.env.GOOGLE_API_KEY,
 });
 
 const systemPrompt = "You are a helpful assistant to DevOps and Platform Engineers. When running SSH commands, use the 'ubuntu' user unless otherwise specified.";
