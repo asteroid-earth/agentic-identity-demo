@@ -97,7 +97,14 @@ jobs:
           ssh -vvv -F ./ssh-out/ssh_config ubuntu@agent-demo-app.teleport-18-ent.teleport.town hostname 2>&1 || true
           echo ""
           echo "=== Testing SSH connection to short hostname ==="
-          ssh -vvv -F ./ssh-out/ssh_config ubuntu@agent-demo-app hostname 2>&1 || true
+          ssh -vvv -F ./ssh-out/ssh_config ubuntu@agent-demo-app.teleport-18-ent.teleport.town  hostname 2>&1 || true
+          echo ""
+          echo "=== Testing SSH connection to inventory hostname ==="
+          ssh -F ./ssh-out/ssh_config \
+          -o HostKeyAlias=agent-demo-app \
+          ubuntu@agent-demo-app.teleport-18-ent.teleport.town hostname || true
+                echo ""
+          echo "=== END ==="
 
       - name: Deploy awesome agent application
         env:
