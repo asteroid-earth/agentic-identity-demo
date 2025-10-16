@@ -1,0 +1,21 @@
+---
+# Load configuration from the root config.yaml file
+# This file is automatically loaded by Ansible for all hosts
+
+# Load the main configuration
+config: "{{ lookup('file', playbook_dir + '/../config.yaml') | from_yaml }}"
+
+# Extract commonly used variables
+teleport_cluster_domain: "{{ config.teleport.cluster_domain }}"
+teleport_app_server: "{{ config.teleport.app_server }}"
+teleport_ssh_target: "{{ config.teleport.ssh_target }}"
+teleport_token_github: "{{ config.teleport.tokens.github_actions }}"
+teleport_token_iam: "{{ config.teleport.tokens.iam_instance }}"
+teleport_k8s_cluster: "{{ config.teleport.k8s_cluster_name }}"
+
+# Application configuration
+app_name: "{{ config.app.name }}"
+app_user: "{{ config.app.user }}"
+app_group: "{{ config.app.group }}"
+app_uid: "{{ config.app.uid }}"
+app_gid: "{{ config.app.gid }}"

@@ -1,3 +1,21 @@
 node_modules
 .DS_Store
 .idea
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+dist/
+.web/
+*.log
+
+# Secrets and keys
+*.pem
+*.key
+*.crt
+ssh-out/
+k8s-out/
+svid-out/

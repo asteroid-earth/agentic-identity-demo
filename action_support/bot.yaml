@@ -1,5 +1,5 @@
 version: v2
-proxy_server: mwidemo.cloud.gravitational.io:443
+proxy_server: teleport-18-ent.teleport.town:443
 onboarding:
   join_method: github
   token: agent-demo-deployment

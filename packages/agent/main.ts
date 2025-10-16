@@ -12,6 +12,11 @@ interface SshCommand {
   sshCommand: string;
 }
 
+// Configuration from environment variables
+const SSH_TARGET_HOST = process.env.SSH_TARGET_HOST || "agent-demo-target.teleport-18-ent.teleport.town";
+const SSH_CONFIG_PATH = process.env.SSH_CONFIG_PATH || "/home/awesomeagent/machine-id/ssh_config";
+const QUOTES_API_URL = process.env.QUOTES_API_URL || "http://localhost:3000/api/quotes/random";
+
 const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
   maxOutputTokens: 2048,
@@ -39,7 +44,7 @@ export async function prompt(params: {
 
       const commandObject = sshCommand as SshCommand
 
-      return execSync(`ssh -F /home/awesomeagent/machine-id/ssh_config ${commandObject.username}@agent-demo-target.mwidemo.cloud.gravitational.io ${commandObject.sshCommand}`).toString()
+      return execSync(`ssh -F ${SSH_CONFIG_PATH} ${commandObject.username}@${SSH_TARGET_HOST} ${commandObject.sshCommand}`).toString()
     }, {
       schema: sshCommandSchema,
       name: "run_ssh_command",
@@ -50,10 +55,8 @@ export async function prompt(params: {
   const getQuoteTool = tool(
     async () => {
 
-      const url = "http://localhost:3000/api/quotes/random";
-
       const quoteResponse = await axios({
-        url,
+        url: QUOTES_API_URL,
       });
 
       logDebug(quoteResponse.data)

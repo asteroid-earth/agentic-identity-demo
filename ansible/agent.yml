@@ -1,13 +1,9 @@
 ---
 - name: Setup awesome agent services
-  hosts: agent-demo-app.mwidemo.cloud.gravitational.io
+  hosts: all
   remote_user: root
   vars:
-    app_user: awesomeagent
-    app_group: awesomeagent
-    app_uid: 3000
-    app_gid: 3000
-    service_name: awesome-agent
+    service_name: "{{ app_name }}"
     git_version: "{{ git_sha | default(git_branch) | default('main') }}"
 
   tasks:
@@ -80,10 +76,10 @@
       copy:
         content: |
           version: v2
-          auth_server: mwidemo.cloud.gravitational.io:443
+          auth_server: {{ teleport_cluster_domain }}:443
           onboarding:
             join_method: iam
-            token: agent-demo-instance
+            token: {{ teleport_token_iam }}
           storage:
             type: directory
             path: "/home/awesomeagent/tbot"
@@ -182,19 +178,21 @@
           [Unit]
           Description=Agentic Identity Demo
           After=network.target
-          
+
           [Service]
           Type=simple
           User={{ app_user }}
           Group={{ app_group }}
           WorkingDirectory=/home/awesomeagent/agentic-identity-demo/packages/backend
-          Environment="GOOGLE_API_KEY=abc123"
+          Environment="GOOGLE_API_KEY={{ lookup('env', 'GOOGLE_API_KEY') | default('REPLACE_WITH_YOUR_API_KEY', true) }}"
+          Environment="SSH_TARGET_HOST={{ teleport_ssh_target }}"
           Environment="SSH_CONFIG_PATH=/home/awesomeagent/machine-id/ssh_config"
+          Environment="QUOTES_API_URL=http://localhost:3000/api/quotes/random"
           Environment="PATH=/usr/bin:/bin:/usr/local/bin"
           ExecStart=/usr/local/bin/node --import jiti/register main.ts
           Restart=on-failure
           RestartSec=5
-          
+
           [Install]
           WantedBy=multi-user.target
         mode: '0644'
