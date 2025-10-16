@@ -88,12 +88,12 @@
           - type: application-tunnel
             app_name: quotes
             listen: tcp://127.0.0.1:3000
-          outputs:
-          - type: identity
-            ssh_config: on
+          - type: ssh-multiplexer
             destination:
               type: directory
               path: /home/awesomeagent/machine-id
+              proxy_command:
+              - /usr/local/bin/fdpass-teleport
         dest: /etc/tbot.yaml
         owner: "{{ app_user }}"
         group: "{{ app_group }}"
