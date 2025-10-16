@@ -88,7 +88,7 @@ jobs:
           echo "=== Ansible Inventory ==="
           cat ./ansible/hosts
           echo ""
-          echo "=== SSH Certificate Info ==="
+          echo "=== SSH Certificate Info 2 ==="
           ssh-keygen -L -f ./ssh-out/key-cert.pub || true
 
       - name: Test direct SSH connection
