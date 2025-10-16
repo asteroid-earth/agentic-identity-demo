@@ -66,7 +66,7 @@ jobs:
       - name: Fetch Teleport binaries
         uses: teleport-actions/setup@v1
         with:
-          version: 18.1.5
+          version: 18.2.7
 
       - name: Update bot.yaml with config values
         run: |
@@ -94,10 +94,10 @@ jobs:
       - name: Test direct SSH connection
         run: |
           echo "=== Testing direct SSH connection with verbose output ==="
-          ssh -vvv -F ./ssh-out/ssh_config ubuntu@agent-demo-app.teleport-18-ent.teleport.town hostname 2>&1 || true
+          ssh -v -F ./ssh-out/ssh_config ubuntu@agent-demo-app.teleport-18-ent.teleport.town hostname 2>&1 || true
           echo ""
           echo "=== Testing SSH connection to short hostname ==="
-          ssh -vvv -F ./ssh-out/ssh_config ubuntu@agent-demo-app.teleport-18-ent.teleport.town  hostname 2>&1 || true
+          ssh -v -F ./ssh-out/ssh_config ubuntu@agent-demo-app.teleport-18-ent.teleport.town  hostname 2>&1 || true
           echo ""
           echo "=== Testing SSH connection to inventory hostname ==="
           ssh -F ./ssh-out/ssh_config \
@@ -111,7 +111,7 @@ jobs:
           ANSIBLE_CONFIG: ./action_support/ansible.cfg
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
-          ansible-playbook -vvv -i ./ansible/hosts ./ansible/agent.yml \
+          ansible-playbook -i ./ansible/hosts ./ansible/agent.yml \
             -e "git_sha=${{ github.sha }}" \
             -e "teleport_cluster_domain=${{ steps.config.outputs.teleport_cluster }}" \
             -e "teleport_token_iam=${{ steps.config.outputs.teleport_token_iam }}" \
