@@ -104,7 +104,7 @@ jobs:
           -o HostKeyAlias=agent-demo-app \
           ubuntu@agent-demo-app.teleport-18-ent.teleport.town hostname || true
                 echo ""
-          echo "=== END ==="
+          echo "=== END TWO ==="
 
       - name: Deploy awesome agent application
         env:
