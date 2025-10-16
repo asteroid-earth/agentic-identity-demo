@@ -90,6 +90,14 @@ jobs:
           echo "=== SSH Certificate Info ==="
           ssh-keygen -L -f ./ssh-out/key-cert.pub || true
 
+      - name: Test direct SSH connection
+        run: |
+          echo "=== Testing direct SSH connection with verbose output ==="
+          ssh -vvv -F ./ssh-out/ssh_config ubuntu@agent-demo-app.teleport-18-ent.teleport.town hostname 2>&1 || true
+          echo ""
+          echo "=== Testing SSH connection to short hostname ==="
+          ssh -vvv -F ./ssh-out/ssh_config ubuntu@agent-demo-app hostname 2>&1 || true
+
       - name: Deploy awesome agent application
         env:
           ANSIBLE_CONFIG: ./action_support/ansible.cfg
