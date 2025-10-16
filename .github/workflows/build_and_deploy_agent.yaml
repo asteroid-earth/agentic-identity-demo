@@ -79,21 +79,6 @@ jobs:
         run: |
           tbot start --oneshot -c ./action_support/bot.yaml
 
-      - name: Fix SSH config for FQDN host certificate validation
-        run: |
-          # Prepend host-specific HostKeyAlias configuration
-          cat > ./ssh-out/ssh_config_fixed << 'EOF'
-# Host key validation fix: use short hostname for certificate validation
-# The server certificates only include short hostnames as principals
-Host agent-demo-app.teleport-18-ent.teleport.town
-    HostKeyAlias agent-demo-app
-
-Host agent-demo-target.teleport-18-ent.teleport.town
-    HostKeyAlias agent-demo-target
-
-EOF
-          cat ./ssh-out/ssh_config >> ./ssh-out/ssh_config_fixed
-          mv ./ssh-out/ssh_config_fixed ./ssh-out/ssh_config
 
       - name: Debug Teleport SSH configuration
         run: |
@@ -118,7 +103,7 @@ EOF
         env:
           ANSIBLE_CONFIG: ./action_support/ansible.cfg
         run: |
-          ansible-playbook -i ./ansible/hosts ./ansible/agent.yml \
+          ansible-playbook -i -vvv ./ansible/hosts ./ansible/agent.yml \
             -e "git_sha=${{ github.sha }}" \
             -e "teleport_cluster_domain=${{ steps.config.outputs.teleport_cluster }}" \
             -e "teleport_token_iam=${{ steps.config.outputs.teleport_token_iam }}" \

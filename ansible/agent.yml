@@ -1,11 +1,14 @@
 ---
 - name: Setup awesome agent services
   hosts: all
-  remote_user: ubuntu
-  become: yes
+  remote_user: root
   vars:
     service_name: "{{ app_name }}"
     git_version: "{{ git_sha | default(git_branch) | default('main') }}"
+
+  tasks:
+    - name: "hostname"
+      command: "hostname"
 
   tasks:
     - name: Update apt package cache
