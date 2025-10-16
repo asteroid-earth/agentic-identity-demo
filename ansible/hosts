@@ -1,4 +1,4 @@
 [agent_servers]
 # Replace this with your Teleport app server hostname
 # This should match teleport.app_server in config.yaml
-agent-demo-app.teleport-18-ent.teleport.town
+agent-demo-app
