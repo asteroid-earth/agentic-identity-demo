@@ -77,17 +77,17 @@ jobs:
         run: |
           tbot start --oneshot -c ./action_support/bot.yaml
 
-      - name: Create wrapper SSH config for short hostnames
+      - name: Add short hostname support to SSH config
         run: |
-          cat > ./ssh-out/ssh_config_wrapper << 'EOF'
-          # Wrapper config to handle short hostnames
-          Host agent-demo-*
+          # Prepend short hostname mapping to the tbot-generated config
+          cat > ./ssh-out/ssh_config_wrapper << EOF
+          # Short hostname support - expand to FQDN
+          Host agent-demo-app agent-demo-target
               Hostname %h.${{ steps.config.outputs.teleport_cluster }}
 
-          # Include the tbot-generated config
-          Include ./ssh-out/ssh_config
           EOF
-          echo "=== Generated SSH Config Wrapper ==="
+          cat ./ssh-out/ssh_config >> ./ssh-out/ssh_config_wrapper
+          echo "=== Updated SSH Config ==="
           cat ./ssh-out/ssh_config_wrapper
 
       - name: Debug Teleport SSH configuration
