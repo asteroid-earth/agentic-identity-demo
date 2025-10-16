@@ -17,7 +17,7 @@ teleport:
     iam_instance: "agent-demo-instance"
 
   # Kubernetes cluster selector (for kubectl access)
-  k8s_cluster_name: "mwi-demo-eks-us-west-2-668558765449"
+  k8s_cluster_name: "cookie"
 
 # AWS Configuration (for Quotes application deployment)
 aws:
