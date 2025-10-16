@@ -17,10 +17,13 @@ const SSH_TARGET_HOST = process.env.SSH_TARGET_HOST || "agent-demo-target.telepo
 const SSH_CONFIG_PATH = process.env.SSH_CONFIG_PATH || "/home/awesomeagent/machine-id/ssh_config";
 const QUOTES_API_URL = process.env.QUOTES_API_URL || "http://localhost:3000/api/quotes/random";
 
+const apiKey = process.env.GOOGLE_API_KEY;
+console.log("DEBUG: GOOGLE_API_KEY is", apiKey ? `set (length: ${apiKey.length}, first 10 chars: ${apiKey.substring(0, 10)})` : "NOT SET");
+
 const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
   maxOutputTokens: 2048,
-  apiKey: process.env.GOOGLE_API_KEY,
+  apiKey: apiKey,
 });
 
 const systemPrompt = "You are a helpful assistant to DevOps and Platform Engineers. When running SSH commands, use the 'ubuntu' user unless otherwise specified.";
