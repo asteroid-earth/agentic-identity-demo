@@ -1,2 +1,4 @@
 [agent_servers]
-agent-demo-app.teleport-18-ent.teleport.town
+agent-demo-app.teleport-18-ent.teleport.town \
+  ansible_user=root \
+  ansible_ssh_common_args='-F ./ssh-out/ssh_config -o HostKeyAlias=agent-demo-app'
