@@ -10,14 +10,9 @@ Agent - LangChain-based agent that can execute SSH commands and fetch quotes via
 
 ## Configuration
 
-Before deploying, you need to configure the application for your Teleport cluster:
+The repository includes a working `config.yaml` configured for the demo Teleport cluster. To use this with your own cluster:
 
-1. **Copy the example configuration:**
-   ```bash
-   cp config.example.yaml config.yaml
-   ```
-
-2. **Edit `config.yaml` with your values:**
+1. **Edit `config.yaml` with your values:**
    - `teleport.cluster_domain`: Your Teleport cluster domain (e.g., `myteleport.example.com`)
    - `teleport.app_server`: The hostname where the agent app will be deployed
    - `teleport.ssh_target`: The server the agent will SSH into
@@ -25,10 +20,12 @@ Before deploying, you need to configure the application for your Teleport cluste
    - `teleport.k8s_cluster_name`: Your Kubernetes cluster name (get from `tctl get kube_cluster`)
    - `aws`: Your AWS ECR registry details (for Quotes application)
 
-3. **Update the Ansible inventory:**
+   Alternatively, you can reference `config.example.yaml` as a template.
+
+2. **Update the Ansible inventory:**
    Edit `ansible/hosts` to match your app server hostname from `config.yaml`
 
-4. **Set the GOOGLE_API_KEY environment variable:**
+3. **Set the GOOGLE_API_KEY environment variable:**
    ```bash
    export GOOGLE_API_KEY="your-actual-google-gemini-api-key"
    ```

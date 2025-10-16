@@ -1,0 +1,35 @@
+# Teleport Configuration
+# Copy this file and customize for your environment
+
+teleport:
+  # Your Teleport cluster domain (proxy server)
+  cluster_domain: "teleport-18-ent.teleport.town"
+
+  # Application server hostname (where the agent app will be deployed)
+  app_server: "agent-demo-app.teleport-18-ent.teleport.town"
+
+  # SSH target hostname (the server the agent will SSH into)
+  ssh_target: "agent-demo-target.teleport-18-ent.teleport.town"
+
+  # Join tokens for authentication
+  tokens:
+    github_actions: "agent-demo-deployment"
+    iam_instance: "agent-demo-instance"
+
+  # Kubernetes cluster selector (for kubectl access)
+  k8s_cluster_name: "mwi-demo-eks-us-west-2-668558765449"
+
+# AWS Configuration (for Quotes application deployment)
+aws:
+  region: "us-west-2"
+  ecr_registry: "668558765449.dkr.ecr.us-west-2.amazonaws.com"
+  ecr_repository: "agent-demo-30bad72"
+  profile: "agent-demo-deployment"
+
+# Application Configuration
+app:
+  name: "awesome-agent"
+  user: "awesomeagent"
+  group: "awesomeagent"
+  uid: 3000
+  gid: 3000

@@ -2,9 +2,6 @@ node_modules
 .DS_Store
 .idea
 
-# Configuration files (use config.example.yaml as template)
-config.yaml
-
 # Environment files
 .env
 .env.local
