@@ -73,7 +73,7 @@
         recurse: yes
         owner: "{{ app_user }}"
         group: "{{ app_group }}"
-        mode: '0777'
+        mode: '0755'
 
     - name: Create config file for tbot
       copy:
@@ -174,34 +174,48 @@
         chdir: /home/awesomeagent/agentic-identity-demo/packages/backend
         creates: /home/awesomeagent/agentic-identity-demo/packages/backend/.web
 
+    - name: Validate GOOGLE_API_KEY is provided
+      assert:
+        that:
+          - google_api_key is defined
+          - google_api_key | length > 0
+          - google_api_key != 'REPLACE_WITH_YOUR_API_KEY'
+        fail_msg: "GOOGLE_API_KEY must be provided as a valid API key via -e google_api_key=..."
+        quiet: true
+
     - name: Create systemd service file for awesome agent
       copy:
         dest: /etc/systemd/system/{{ service_name }}.service
         content: |
           [Unit]
           Description=Agentic Identity Demo
-          After=network.target
+          After=network.target tbot.service
+          Requires=tbot.service
 
           [Service]
           Type=simple
           User={{ app_user }}
           Group={{ app_group }}
           WorkingDirectory=/home/awesomeagent/agentic-identity-demo/packages/backend
-          Environment="GOOGLE_API_KEY={{ lookup('env', 'GOOGLE_API_KEY') | default('REPLACE_WITH_YOUR_API_KEY', true) }}"
+          Environment="GOOGLE_API_KEY={{ google_api_key }}"
           Environment="SSH_TARGET_HOST={{ teleport_ssh_target }}"
           Environment="SSH_CONFIG_PATH=/home/awesomeagent/machine-id/ssh_config"
           Environment="QUOTES_API_URL=http://localhost:3000/api/quotes/random"
           Environment="PATH=/usr/bin:/bin:/usr/local/bin"
+          Environment="NODE_ENV=production"
           ExecStart=/usr/local/bin/node --import jiti/register main.ts
-          Restart=on-failure
+          Restart=always
           RestartSec=5
+          StandardOutput=journal
+          StandardError=journal
+          SyslogIdentifier={{ service_name }}
 
           [Install]
           WantedBy=multi-user.target
         mode: '0644'
       notify:
         - Reload systemd
-        - Enable and start service
+        - Restart service
 
   handlers:
     - name: Restart tbot
@@ -213,8 +227,9 @@
     - name: Reload systemd
       systemd:
         daemon_reload: yes
-    - name: Enable and start service
+    - name: Restart service
       systemd:
         name: "{{ service_name }}"
         enabled: yes
-        state: started
+        state: restarted
+        daemon_reload: yes

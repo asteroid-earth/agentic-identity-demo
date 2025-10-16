@@ -109,10 +109,10 @@ jobs:
       - name: Deploy awesome agent application
         env:
           ANSIBLE_CONFIG: ./action_support/ansible.cfg
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           ansible-playbook -i ./ansible/hosts ./ansible/agent.yml \
             -e "git_sha=${{ github.sha }}" \
+            -e "google_api_key=${{ secrets.GOOGLE_API_KEY }}" \
             -e "teleport_cluster_domain=${{ steps.config.outputs.teleport_cluster }}" \
             -e "teleport_token_iam=${{ steps.config.outputs.teleport_token_iam }}" \
             -e "teleport_ssh_target=${{ steps.config.outputs.teleport_ssh_target }}" \
