@@ -27,6 +27,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Load configuration
+        id: config
+        run: |
+          pip install pyyaml
+          python3 << 'EOF'
+          import yaml
+          import os
+          with open('config.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+              print(f"teleport_cluster={config['teleport']['cluster_domain']}", file=fh)
+              print(f"teleport_token={config['teleport']['tokens']['github_actions']}", file=fh)
+          EOF
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -46,6 +60,11 @@ jobs:
         uses: teleport-actions/setup@v1
         with:
           version: 18.1.5
+
+      - name: Update bot.yaml with config values
+        run: |
+          sed -i "s|proxy_server:.*|proxy_server: ${{ steps.config.outputs.teleport_cluster }}:443|g" ./action_support/bot.yaml
+          sed -i "s|token:.*|token: ${{ steps.config.outputs.teleport_token }}|g" ./action_support/bot.yaml
 
       - name: Authenticate with Teleport
         run: |

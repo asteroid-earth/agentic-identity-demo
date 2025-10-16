@@ -2,12 +2,6 @@ name: Build and Deploy Quotes Application
 
 on: workflow_dispatch
 
-env:
-  ECR_REGISTRY: 668558765449.dkr.ecr.us-west-2.amazonaws.com
-  ECR_REPOSITORY: agent-demo-30bad72
-  AWS_REGION: us-west-2
-  AWS_PROFILE: agent-demo-deployment
-
 jobs:
   # Build and push Docker images
   build:
@@ -23,6 +17,24 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Load configuration
+        id: config
+        run: |
+          pip install pyyaml
+          python3 << 'EOF'
+          import yaml
+          import os
+          with open('config.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+              print(f"teleport_cluster={config['teleport']['cluster_domain']}", file=fh)
+              print(f"teleport_token={config['teleport']['tokens']['github_actions']}", file=fh)
+              print(f"ecr_registry={config['aws']['ecr_registry']}", file=fh)
+              print(f"ecr_repository={config['aws']['ecr_repository']}", file=fh)
+              print(f"aws_region={config['aws']['region']}", file=fh)
+              print(f"aws_profile={config['aws']['profile']}", file=fh)
+          EOF
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -55,6 +67,11 @@ jobs:
         with:
           version: 18.1.5
 
+      - name: Update bot.yaml with config values
+        run: |
+          sed -i "s|proxy_server:.*|proxy_server: ${{ steps.config.outputs.teleport_cluster }}:443|g" ./action_support/bot.yaml
+          sed -i "s|token:.*|token: ${{ steps.config.outputs.teleport_token }}|g" ./action_support/bot.yaml
+
       - name: Authenticate with Teleport
         run: |
           tbot start --oneshot -c ./action_support/bot.yaml
@@ -68,6 +85,9 @@ jobs:
 
       - name: Build and push image (multi-arch)
         id: build
+        env:
+          ECR_REGISTRY: ${{ steps.config.outputs.ecr_registry }}
+          ECR_REPOSITORY: ${{ steps.config.outputs.ecr_repository }}
         run: |
           IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:quotes-${{ steps.meta.outputs.tag }}"
           docker buildx build \
@@ -94,6 +114,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Load configuration
+        id: config
+        run: |
+          pip install pyyaml
+          python3 << 'EOF'
+          import yaml
+          import os
+          with open('config.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+              print(f"teleport_cluster={config['teleport']['cluster_domain']}", file=fh)
+              print(f"teleport_token={config['teleport']['tokens']['github_actions']}", file=fh)
+              print(f"ecr_registry={config['aws']['ecr_registry']}", file=fh)
+              print(f"ecr_repository={config['aws']['ecr_repository']}", file=fh)
+          EOF
+
       - name: Setup Helm
         uses: azure/setup-helm@v3
         with:
@@ -109,11 +145,19 @@ jobs:
         with:
           version: 18.1.5
 
+      - name: Update bot.yaml with config values
+        run: |
+          sed -i "s|proxy_server:.*|proxy_server: ${{ steps.config.outputs.teleport_cluster }}:443|g" ./action_support/bot.yaml
+          sed -i "s|token:.*|token: ${{ steps.config.outputs.teleport_token }}|g" ./action_support/bot.yaml
+
       - name: Authenticate with Teleport
         run: |
           tbot start --oneshot -c ./action_support/bot.yaml
 
       - name: Deploy quotes application
+        env:
+          ECR_REGISTRY: ${{ steps.config.outputs.ecr_registry }}
+          ECR_REPOSITORY: ${{ steps.config.outputs.ecr_repository }}
         run: |
           helm upgrade --install quotes ./charts/quotes \
             --namespace agent-demo \

@@ -1,0 +1,45 @@
+# Teleport Configuration Example
+# Copy this file to config.yaml and customize for your environment
+
+teleport:
+  # Your Teleport cluster domain (proxy server)
+  # Example: "myteleport.example.com"
+  cluster_domain: "your-cluster.teleport.example.com"
+
+  # Application server hostname (where the agent app will be deployed)
+  # This should be a node registered in Teleport with the appropriate labels
+  app_server: "agent-demo-app.your-cluster.teleport.example.com"
+
+  # SSH target hostname (the server the agent will SSH into)
+  # This should be a node registered in Teleport that the agent can access
+  ssh_target: "agent-demo-target.your-cluster.teleport.example.com"
+
+  # Join tokens for authentication
+  tokens:
+    # Token for GitHub Actions to authenticate with Teleport
+    github_actions: "your-github-actions-token"
+
+    # Token for EC2 instances to join via IAM method
+    iam_instance: "your-iam-join-token"
+
+  # Kubernetes cluster selector (for kubectl access via Teleport)
+  # Get this from: tctl get kube_cluster
+  k8s_cluster_name: "your-k8s-cluster-name"
+
+# AWS Configuration (for Quotes application deployment)
+aws:
+  region: "us-west-2"
+  # Your ECR registry URL
+  ecr_registry: "123456789012.dkr.ecr.us-west-2.amazonaws.com"
+  # Your ECR repository name
+  ecr_repository: "your-repository-name"
+  # AWS profile name used in GitHub Actions
+  profile: "your-aws-profile"
+
+# Application Configuration
+app:
+  name: "awesome-agent"
+  user: "awesomeagent"
+  group: "awesomeagent"
+  uid: 3000
+  gid: 3000
