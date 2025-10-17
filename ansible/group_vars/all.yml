@@ -2,6 +2,9 @@
 # Load configuration from the root config.yaml file
 # This file is automatically loaded by Ansible for all hosts
 
+# Explicitly set Python interpreter to avoid discovery warnings
+ansible_python_interpreter: /usr/bin/python3
+
 # Load the main configuration
 config: "{{ lookup('file', playbook_dir + '/../config.yaml') | from_yaml }}"
 
@@ -11,6 +14,7 @@ teleport_app_server: "{{ config.teleport.app_server }}"
 teleport_ssh_target: "{{ config.teleport.ssh_target }}"
 teleport_token_github: "{{ config.teleport.tokens.github_actions }}"
 teleport_token_iam: "{{ config.teleport.tokens.iam_instance }}"
+# teleport_token_app_service is passed as a command-line variable (secret)
 teleport_k8s_cluster: "{{ config.teleport.k8s_cluster_name }}"
 
 # Application configuration

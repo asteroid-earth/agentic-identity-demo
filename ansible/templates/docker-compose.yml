@@ -1,0 +1,39 @@
+services:
+  quotes:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quotes-api
+    restart: always
+    ports:
+      - "3001:3000"
+    networks:
+      - teleport-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/quotes/random"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  teleport-app:
+    image: public.ecr.aws/gravitational/teleport-ent-distroless:18
+    container_name: teleport-app-service
+    restart: always
+    networks:
+      - teleport-net
+    volumes:
+      - ./teleport-app.yaml:/etc/teleport/teleport.yaml:ro
+      - teleport-app-data:/var/lib/teleport
+    depends_on:
+      quotes:
+        condition: service_healthy
+    environment:
+      - TELEPORT_ANONYMOUS_TELEMETRY=1
+
+networks:
+  teleport-net:
+    driver: bridge
+
+volumes:
+  teleport-app-data:

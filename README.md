@@ -72,18 +72,25 @@ Run `pnpm build` to build the backend for distribution.
 ### Using Ansible
 
 1. Ensure `config.yaml` is configured with your values
-2. Set the GOOGLE_API_KEY environment variable
+2. Set required environment variables
 3. Run the Ansible playbook:
    ```bash
-   export GOOGLE_API_KEY="your-api-key"
-   ansible-playbook -i ansible/hosts ansible/agent.yml
+   export GOOGLE_API_KEY="your-google-api-key"
+   export TELEPORT_APP_SERVICE_TOKEN="your-teleport-join-token"
+   ansible-playbook -i ansible/hosts ansible/agent.yml \
+     -e "google_api_key=$GOOGLE_API_KEY" \
+     -e "teleport_token_app_service=$TELEPORT_APP_SERVICE_TOKEN"
    ```
 
 ### Using GitHub Actions
 
-The workflows will automatically read from `config.yaml`:
+The workflows will automatically read from `config.yaml` and GitHub Secrets:
 - `.github/workflows/build_and_deploy_agent.yaml` - Deploys the agent application
 - `.github/workflows/build_and_deploy_quotes.yaml` - Deploys the quotes service
+
+**Required GitHub Secrets:**
+- `GOOGLE_API_KEY` - Your Google Gemini API key
+- `TELEPORT_APP_SERVICE_TOKEN` - Teleport join token for the App Service (type: App)
 
 ## Environment Variables
 

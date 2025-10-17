@@ -66,7 +66,7 @@ jobs:
       - name: Fetch Teleport binaries
         uses: teleport-actions/setup@v1
         with:
-          version: 18.1.5
+          version: 18.2.7
 
       - name: Update bot.yaml with config values
         run: |
@@ -79,6 +79,7 @@ jobs:
         run: |
           tbot start --oneshot -c ./action_support/bot.yaml
 
+
       - name: Debug Teleport SSH configuration
         run: |
           echo "=== Generated SSH Config ==="
@@ -87,8 +88,23 @@ jobs:
           echo "=== Ansible Inventory ==="
           cat ./ansible/hosts
           echo ""
-          echo "=== SSH Certificate Info ==="
+          echo "=== SSH Certificate Info 2 ==="
           ssh-keygen -L -f ./ssh-out/key-cert.pub || true
+
+      - name: Test direct SSH connection
+        run: |
+          echo "=== Testing direct SSH connection with verbose output ==="
+          ssh -v -F ./ssh-out/ssh_config ubuntu@agent-demo-app.teleport-18-ent.teleport.town hostname 2>&1 || true
+          echo ""
+          echo "=== Testing SSH connection to short hostname ==="
+          ssh -v -F ./ssh-out/ssh_config ubuntu@agent-demo-app.teleport-18-ent.teleport.town  hostname 2>&1 || true
+          echo ""
+          echo "=== Testing SSH connection to inventory hostname ==="
+          ssh -F ./ssh-out/ssh_config \
+          -o HostKeyAlias=agent-demo-app \
+          ubuntu@agent-demo-app.teleport-18-ent.teleport.town hostname || true
+                echo ""
+          echo "=== END TWO ==="
 
       - name: Deploy awesome agent application
         env:
@@ -96,6 +112,8 @@ jobs:
         run: |
           ansible-playbook -i ./ansible/hosts ./ansible/agent.yml \
             -e "git_sha=${{ github.sha }}" \
+            -e "google_api_key=${{ secrets.GOOGLE_API_KEY }}" \
+            -e "teleport_token_app_service=${{ secrets.TELEPORT_APP_SERVICE_TOKEN }}" \
             -e "teleport_cluster_domain=${{ steps.config.outputs.teleport_cluster }}" \
             -e "teleport_token_iam=${{ steps.config.outputs.teleport_token_iam }}" \
             -e "teleport_ssh_target=${{ steps.config.outputs.teleport_ssh_target }}" \
