@@ -170,7 +170,7 @@
             path: "/home/awesomeagent/tbot"
           services:
           - type: application-tunnel
-            app_name: quotes
+            app_name: quote
             listen: tcp://127.0.0.1:3000
           - type: ssh-multiplexer
             destination:
