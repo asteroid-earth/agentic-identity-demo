@@ -25,14 +25,8 @@ app_service:
   enabled: true
   apps:
   - name: quotes
-    # Connect to quotes container via Docker network or localhost
     uri: http://quotes-api:3000
     labels:
       env: demo
       type: api
       deployed: local-docker
-    # Optional: enable application rewriting if needed
-    rewrite:
-      headers:
-      - name: X-Forwarded-By
-        value: teleport-app-service
