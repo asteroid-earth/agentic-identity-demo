@@ -157,6 +157,15 @@
         group: "{{ app_group }}"
         mode: '0755'
 
+    - name: Create tbot storage directory
+      ansible.builtin.file:
+        path: "/home/{{ app_user }}/tbot"
+        state: directory
+        recurse: yes
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+
     - name: Create config file for tbot
       copy:
         content: |
