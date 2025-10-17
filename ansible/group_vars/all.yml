@@ -2,6 +2,9 @@
 # Load configuration from the root config.yaml file
 # This file is automatically loaded by Ansible for all hosts
 
+# Explicitly set Python interpreter to avoid discovery warnings
+ansible_python_interpreter: /usr/bin/python3
+
 # Load the main configuration
 config: "{{ lookup('file', playbook_dir + '/../config.yaml') | from_yaml }}"
 

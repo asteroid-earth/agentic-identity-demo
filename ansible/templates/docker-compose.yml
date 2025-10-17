@@ -25,7 +25,6 @@ services:
     volumes:
       - ./teleport-app.yaml:/etc/teleport.yaml:ro
       - teleport-app-data:/var/lib/teleport
-    command: start --config=/etc/teleport.yaml
     depends_on:
       quotes:
         condition: service_healthy
