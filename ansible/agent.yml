@@ -50,6 +50,41 @@
       environment:
         PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
 
+    - name: Install Docker dependencies
+      apt:
+        name:
+          - ca-certificates
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
     - name: Create agent group
       group:
         name: "{{ app_group }}"
@@ -135,6 +170,54 @@
         state: started
         enabled: yes
         daemon_reload: yes
+
+    - name: Create directory for Docker Compose files
+      file:
+        path: "/home/{{ app_user }}/quotes-service"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+
+    - name: Copy Dockerfile for quotes service
+      copy:
+        src: "{{ playbook_dir }}/../action_support/quotes/Dockerfile"
+        dest: "/home/{{ app_user }}/quotes-service/Dockerfile"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0644'
+
+    - name: Copy docker-compose.yml
+      copy:
+        src: "{{ playbook_dir }}/templates/docker-compose.yml"
+        dest: "/home/{{ app_user }}/quotes-service/docker-compose.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0644'
+
+    - name: Create Teleport App Service configuration
+      template:
+        src: "{{ playbook_dir }}/templates/teleport-app.yaml.j2"
+        dest: "/home/{{ app_user }}/quotes-service/teleport-app.yaml"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0644'
+
+    - name: Add user to docker group
+      user:
+        name: "{{ app_user }}"
+        groups: docker
+        append: yes
+
+    - name: Build and start quotes service with Docker Compose
+      become: yes
+      become_user: "{{ app_user }}"
+      community.docker.docker_compose_v2:
+        project_src: "/home/{{ app_user }}/quotes-service"
+        state: present
+        pull: always
+      environment:
+        PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
 
     - name: Pull latest version of awesome agent
       become: yes
