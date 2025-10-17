@@ -23,7 +23,7 @@ services:
     networks:
       - teleport-net
     volumes:
-      - ./teleport-app.yaml:/etc/teleport.yaml:ro
+      - ./teleport-app.yaml:/etc/teleport/teleport.yaml:ro
       - teleport-app-data:/var/lib/teleport
     depends_on:
       quotes:
