@@ -113,6 +113,7 @@ jobs:
           ansible-playbook -i ./ansible/hosts ./ansible/agent.yml \
             -e "git_sha=${{ github.sha }}" \
             -e "google_api_key=${{ secrets.GOOGLE_API_KEY }}" \
+            -e "teleport_token_app_service=${{ secrets.TELEPORT_APP_SERVICE_TOKEN }}" \
             -e "teleport_cluster_domain=${{ steps.config.outputs.teleport_cluster }}" \
             -e "teleport_token_iam=${{ steps.config.outputs.teleport_token_iam }}" \
             -e "teleport_ssh_target=${{ steps.config.outputs.teleport_ssh_target }}" \

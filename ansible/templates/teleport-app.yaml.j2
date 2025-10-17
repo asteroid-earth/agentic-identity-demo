@@ -3,8 +3,8 @@ teleport:
   proxy_server: {{ teleport_cluster_domain }}:443
 
   join_params:
-    method: iam
-    token_name: {{ teleport_token_iam }}
+    method: token
+    token_name: {{ teleport_token_app_service }}
 
   log:
     severity: INFO
