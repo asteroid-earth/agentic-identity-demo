@@ -10,6 +10,16 @@
     - name: "hostname"
       command: "hostname"
 
+    - name: Fix any broken Docker repository configurations
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/apt/sources.list.d/docker.list
+        - /etc/apt/sources.list.d/docker.list.save
+        - /etc/apt/trusted.gpg.d/docker.gpg
+      ignore_errors: yes
+
     - name: Update apt package cache
       apt:
         update_cache: yes
@@ -64,16 +74,6 @@
           - gnupg
         state: present
         update_cache: yes
-      when: docker_installed.rc != 0
-
-    - name: Remove old Docker repository configurations
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /etc/apt/sources.list.d/docker.list
-        - /etc/apt/sources.list.d/docker.list.save
-        - /etc/apt/trusted.gpg.d/docker.gpg
       when: docker_installed.rc != 0
 
     - name: Create directory for Docker GPG key
