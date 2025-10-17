@@ -24,10 +24,10 @@ ssh_service:
 app_service:
   enabled: true
   apps:
-  - name: quote
+  - name: quotes
     uri: tcp://quotes-api:3000
     labels:
-      env: demo
+      env: agent-demo
       type: api
       version: v1
       deployed: local-docker

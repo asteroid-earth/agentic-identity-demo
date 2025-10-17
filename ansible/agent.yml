@@ -163,14 +163,14 @@
           version: v2
           proxy_server: {{ teleport_cluster_domain }}:443
           onboarding:
-            join_method: token
+            join_method: iam
             token: {{ teleport_token_iam }}
           storage:
             type: directory
             path: "/home/awesomeagent/tbot"
           services:
           - type: application-tunnel
-            app_name: quote
+            app_name: quotes
             listen: tcp://127.0.0.1:3000
           - type: ssh-multiplexer
             destination:
