@@ -25,7 +25,7 @@ app_service:
   enabled: true
   apps:
   - name: quotes
-    uri: http://quotes-api:3000
+    uri: tcp://quotes-api:3000
     labels:
       env: demo
       type: api
