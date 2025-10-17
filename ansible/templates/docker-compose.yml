@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   quotes:
     build:
-      context: ./action_support/quotes
+      context: .
       dockerfile: Dockerfile
     container_name: quotes-api
     restart: always
